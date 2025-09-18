@@ -8,11 +8,8 @@ app = Flask(__name__)
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# Write cookies from environment secret to a temporary file
+# Path to cookies file (provided by Render environment file)
 cookies_file = "cookies.txt"
-if "YOUTUBE_COOKIES" in os.environ:
-    with open(cookies_file, "w") as f:
-        f.write(os.environ["YOUTUBE_COOKIES"])
 
 @app.route("/", methods=["GET", "POST"])
 def index():
