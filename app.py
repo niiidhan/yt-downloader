@@ -8,6 +8,12 @@ app = Flask(__name__)
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
+# Write cookies from environment secret to a temporary file
+cookies_file = "cookies.txt"
+if "YOUTUBE_COOKIES" in os.environ:
+    with open(cookies_file, "w") as f:
+        f.write(os.environ["YOUTUBE_COOKIES"])
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     title = None
@@ -22,7 +28,7 @@ def index():
                 ydl_opts = {
                     "quiet": True,
                     "skip_download": True,
-                    "cookiefile": "cookies.txt",  # ✅ Use cookies
+                    "cookiefile": cookies_file,
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(link, download=False)
@@ -45,7 +51,7 @@ def index():
                     ydl_opts = {
                         "format": "bestaudio/best",
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": "cookies.txt",  # ✅ Use cookies
+                        "cookiefile": cookies_file,
                         "postprocessors": [
                             {
                                 "key": "FFmpegExtractAudio",
@@ -58,7 +64,7 @@ def index():
                     ydl_opts = {
                         "format": f"bestvideo[height<={quality}]+bestaudio/best",
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": "cookies.txt",  # ✅ Use cookies
+                        "cookiefile": cookies_file,
                     }
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -76,5 +82,5 @@ def index():
     )
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render provides PORT
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
