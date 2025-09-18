@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file
 import yt_dlp
 
 app = Flask(__name__)
@@ -9,10 +9,23 @@ DOWNLOAD_FOLDER = "downloads"
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
 
+# Path to cookies file (must be Netscape format)
+COOKIES_FILE = "cookies.txt"
+
+
+def get_ydl_opts(extra_opts=None):
+    """Return yt-dlp options with cookies if available"""
+    opts = {"quiet": True, "noplaylist": True}
+    if os.path.exists(COOKIES_FILE):
+        opts["cookiefile"] = COOKIES_FILE
+    if extra_opts:
+        opts.update(extra_opts)
+    return opts
+
 
 def get_video_info(url):
     """Fetch video title, thumbnail, and available resolutions"""
-    ydl_opts = {"quiet": True, "skip_download": True}
+    ydl_opts = get_ydl_opts({"skip_download": True})
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         formats = info.get("formats", [])
@@ -36,7 +49,7 @@ def download_video(url, quality, mode):
     output_path = os.path.join(DOWNLOAD_FOLDER, "%(title)s.%(ext)s")
 
     if mode == "audio":
-        ydl_opts = {
+        extra_opts = {
             "format": "bestaudio/best",
             "outtmpl": output_path,
             "postprocessors": [
@@ -47,11 +60,13 @@ def download_video(url, quality, mode):
                 }
             ],
         }
-    else:  # Video
-        ydl_opts = {
+    else:
+        extra_opts = {
             "format": f"bestvideo[height<={quality}]+bestaudio/best",
             "outtmpl": output_path,
         }
+
+    ydl_opts = get_ydl_opts(extra_opts)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
@@ -66,7 +81,6 @@ def index():
     if request.method == "POST":
         url = request.form.get("url")
 
-        # Step 1: Fetch video info
         if "fetch" in request.form:
             try:
                 title, thumbnail, resolutions = get_video_info(url)
@@ -80,7 +94,6 @@ def index():
             except Exception as e:
                 return f"Error fetching video info: {e}"
 
-        # Step 2: Download file
         elif "download" in request.form:
             quality = request.form.get("quality")
             mode = request.form.get("mode")
@@ -95,5 +108,5 @@ def index():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render/Heroku will set PORT
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
