@@ -61,8 +61,10 @@ def index():
                     message = f"✅ Download complete! Saved as MP3 ({quality} kbps)."
 
                 else:
+                    # ✅ Correct fallback chain
+                    format_str = f"(bestvideo[height<={quality}]+bestaudio)/bestvideo+bestaudio/best"
                     ydl_opts = {
-                        "format": f"bestvideo[height<={quality}]+bestaudio/bestvideo+bestaudio/best",
+                        "format": format_str,
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
                         "cookiefile": cookies_file,
                         "merge_output_format": "mp4",
@@ -71,9 +73,15 @@ def index():
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(link, download=True)
 
+                    # Detect actual resolution downloaded
                     actual_height = None
-                    if "height" in info:
-                        actual_height = info["height"]
+                    if isinstance(info, dict):
+                        if "height" in info:
+                            actual_height = info["height"]
+                        elif "requested_downloads" in info:
+                            for f in info["requested_downloads"]:
+                                if f.get("height"):
+                                    actual_height = f["height"]
 
                     if actual_height and str(actual_height) != quality:
                         message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
