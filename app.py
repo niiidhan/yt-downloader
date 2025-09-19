@@ -1,98 +1,65 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import yt_dlp
 import os
 
 app = Flask(__name__)
 
-# Ensure downloads folder exists
-if not os.path.exists("downloads"):
-    os.makedirs("downloads")
+DOWNLOAD_FOLDER = "downloads"
+if not os.path.exists(DOWNLOAD_FOLDER):
+    os.makedirs(DOWNLOAD_FOLDER)
 
-cookies_file = "cookies.txt"
+cookies_file = "cookies.txt"  # Make sure this file exists or remove if not needed
 
-@app.route("/", methods=["GET", "POST"])
+
+@app.route("/")
 def index():
-    title = None
-    thumbnail = None
-    resolutions = None
-    link = None
-    message = None
+    return render_template("index.html")
 
-    if request.method == "POST":
-        if "fetch" in request.form:
-            link = request.form["url"]
-            try:
-                ydl_opts = {
-                    "quiet": True,
-                    "skip_download": True,
-                    "cookiefile": cookies_file,
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(link, download=False)
-                    title = info.get("title", "Unknown Title")
-                    thumbnail = info.get("thumbnail")
-                    formats = info.get("formats", [])
-                    resolutions = sorted(
-                        list({f["height"] for f in formats if f.get("height")}),
-                        reverse=True,
-                    )
-            except Exception as e:
-                title = f"Error fetching video info: {str(e)}"
 
-        elif "download" in request.form:
-            link = request.form["url"]
-            mode = request.form.get("mode")
-            quality = request.form.get("quality")
+@app.route("/download", methods=["POST"])
+def download_video():
+    data = request.get_json()
+    url = data.get("url")
+    mode = data.get("mode", "video")
+    quality = data.get("quality", "best")
 
-            try:
-                if mode == "audio":
-                    ydl_opts = {
-                        "format": "bestaudio/best",
-                        "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": cookies_file,
-                        "postprocessors": [
-                            {
-                                "key": "FFmpegExtractAudio",
-                                "preferredcodec": "mp3",
-                                "preferredquality": quality,
-                            }
-                        ],
+    try:
+        if mode == "audio":
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": f"{DOWNLOAD_FOLDER}/%(title)s.%(ext)s",
+                "cookiefile": cookies_file if os.path.exists(cookies_file) else None,
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
                     }
-                    message = f"✅ Download complete! Saved as MP3 ({quality} kbps)."
+                ],
+            }
+        else:  # Video download
+            ydl_opts = {
+                "format": f"(bestvideo[height<={quality}]+bestaudio)/bestvideo+bestaudio/best",
+                "outtmpl": f"{DOWNLOAD_FOLDER}/%(title)s.%(ext)s",
+                "cookiefile": cookies_file if os.path.exists(cookies_file) else None,
+                "merge_output_format": "mp4",
+            }
 
-                else:
-                    ydl_opts = {
-                        "format": f"bestvideo[height<={quality}]+bestaudio/bestvideo+bestaudio/best",
-                        "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": cookies_file,
-                        "merge_output_format": "mp4",
-                    }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(link, download=True)
+        title = info.get("title", "video")
+        actual_height = info.get("height")
+        if mode == "video" and quality != "best" and actual_height and str(actual_height) != quality:
+            message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
+        else:
+            message = f"✅ Download complete! Saved: {title}"
 
-                    actual_height = None
-                    if "height" in info:
-                        actual_height = info["height"]
+        return jsonify({"status": "success", "message": message})
 
-                    if actual_height and str(actual_height) != quality:
-                        message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
-                    else:
-                        message = f"✅ Download complete! Saved in {quality}p."
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
-                title = message
-
-            except Exception as e:
-                title = f"Error during download: {str(e)}"
-
-    return render_template(
-        "index.html",
-        title=title,
-        thumbnail=thumbnail,
-        resolutions=resolutions,
-        link=link,
-    )
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True)
