@@ -1,98 +1,97 @@
-from flask import Flask, render_template, request
-import yt_dlp
-import os
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Downloader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        @media (max-width: 576px) {
+            h2 {
+                font-size: 1.5rem;
+            }
+            h5 {
+                font-size: 1rem;
+            }
+            label {
+                font-size: 0.9rem;
+            }
+            .card {
+                padding: 1rem !important;
+            }
+        }
+    </style>
+    <script>
+        function toggleQualityOptions() {
+            let mode = document.querySelector('input[name="mode"]:checked').value;
+            document.getElementById("video-quality").style.display = (mode === "video") ? "block" : "none";
+            document.getElementById("audio-quality").style.display = (mode === "audio") ? "block" : "none";
+        }
+        window.onload = toggleQualityOptions;
+    </script>
+</head>
+<body class="bg-light">
+<div class="container-fluid mt-3 px-3">
+    <div class="card shadow p-4 mx-auto" style="max-width: 500px;">
+        <h2 class="mb-4 text-center">🎬 YouTube Downloader</h2>
+        
+        {% if title %}
+            {% if "✅" in title %}
+                <div class="alert alert-success text-center">{{ title }}</div>
+            {% elif "⚠️" in title %}
+                <div class="alert alert-warning text-center">{{ title }}</div>
+            {% elif "Error" in title %}
+                <div class="alert alert-danger text-center">{{ title }}</div>
+            {% else %}
+                <div class="alert alert-info text-center">{{ title }}</div>
+            {% endif %}
+        {% endif %}
 
-app = Flask(__name__)
+        {% if thumbnail %}
+            <div class="text-center mb-3">
+                <img src="{{ thumbnail }}" alt="Thumbnail" class="img-fluid mb-2" style="max-height:200px;">
+            </div>
+        {% endif %}
 
-# Ensure downloads folder exists
-if not os.path.exists("downloads"):
-    os.makedirs("downloads")
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Paste YouTube URL</label>
+                <input type="url" name="url" class="form-control" required value="{{ link if link }}">
+            </div>
 
-cookies_file = "cookies.txt"
+            {% if resolutions %}
+                <div class="mb-3">
+                    <label class="form-label">Download Type</label><br>
+                    <input type="radio" name="mode" value="video" checked onclick="toggleQualityOptions()"> Video
+                    <input type="radio" name="mode" value="audio" class="ms-3" onclick="toggleQualityOptions()"> Audio (MP3)
+                </div>
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    title = None
-    thumbnail = None
-    resolutions = None
-    link = None
-    message = None
+                <!-- Video Qualities -->
+                <div class="mb-3" id="video-quality">
+                    <label class="form-label">Available Video Qualities</label>
+                    <select name="quality" class="form-select">
+                        {% for r in resolutions %}
+                            <option value="{{ r }}">{{ r }}p</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-    if request.method == "POST":
-        if "fetch" in request.form:
-            link = request.form["url"]
-            try:
-                ydl_opts = {
-                    "quiet": True,
-                    "skip_download": True,
-                    "cookiefile": cookies_file,
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(link, download=False)
-                    title = info.get("title", "Unknown Title")
-                    thumbnail = info.get("thumbnail")
-                    formats = info.get("formats", [])
-                    resolutions = sorted(
-                        list({f["height"] for f in formats if f.get("height")}),
-                        reverse=True,
-                    )
-            except Exception as e:
-                title = f"Error fetching video info: {str(e)}"
+                <!-- Audio Qualities -->
+                <div class="mb-3" id="audio-quality" style="display:none;">
+                    <label class="form-label">Available Audio Qualities</label>
+                    <select name="quality" class="form-select">
+                        <option value="128">128 kbps</option>
+                        <option value="192">192 kbps</option>
+                        <option value="256">256 kbps</option>
+                        <option value="320" selected>320 kbps</option>
+                    </select>
+                </div>
 
-        elif "download" in request.form:
-            link = request.form["url"]
-            mode = request.form.get("mode")
-            quality = request.form.get("quality")
-
-            try:
-                if mode == "audio":
-                    ydl_opts = {
-                        "format": "bestaudio/best",
-                        "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": cookies_file,
-                        "postprocessors": [
-                            {
-                                "key": "FFmpegExtractAudio",
-                                "preferredcodec": "mp3",
-                                "preferredquality": quality,
-                            }
-                        ],
-                    }
-                    message = f"✅ Download complete! Saved as MP3 ({quality} kbps)."
-
-                else:
-                    ydl_opts = {
-                        "format": f"bestvideo[height<={quality}]+bestaudio/bestvideo+bestaudio/best",
-                        "outtmpl": f"downloads/%(title)s.%(ext)s",
-                        "cookiefile": cookies_file,
-                        "merge_output_format": "mp4",
-                    }
-
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(link, download=True)
-
-                    actual_height = None
-                    if "height" in info:
-                        actual_height = info["height"]
-
-                    if actual_height and str(actual_height) != quality:
-                        message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
-                    else:
-                        message = f"✅ Download complete! Saved in {quality}p."
-
-                title = message
-
-            except Exception as e:
-                title = f"Error during download: {str(e)}"
-
-    return render_template(
-        "index.html",
-        title=title,
-        thumbnail=thumbnail,
-        resolutions=resolutions,
-        link=link,
-    )
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+                <button type="submit" name="download" class="btn btn-success w-100">Download</button>
+            {% else %}
+                <button type="submit" name="fetch" class="btn btn-primary w-100">Fetch Video Info</button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+</body>
+</html>
