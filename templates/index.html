@@ -26,6 +26,7 @@
             document.getElementById("video-quality").style.display = (mode === "video") ? "block" : "none";
             document.getElementById("audio-quality").style.display = (mode === "audio") ? "block" : "none";
         }
+        window.onload = toggleQualityOptions;
     </script>
 </head>
 <body class="bg-light">
@@ -34,9 +35,20 @@
         <h2 class="mb-4 text-center">🎬 YouTube Downloader</h2>
         
         {% if title %}
+            {% if "✅" in title %}
+                <div class="alert alert-success text-center">{{ title }}</div>
+            {% elif "⚠️" in title %}
+                <div class="alert alert-warning text-center">{{ title }}</div>
+            {% elif "Error" in title %}
+                <div class="alert alert-danger text-center">{{ title }}</div>
+            {% else %}
+                <div class="alert alert-info text-center">{{ title }}</div>
+            {% endif %}
+        {% endif %}
+
+        {% if thumbnail %}
             <div class="text-center mb-3">
                 <img src="{{ thumbnail }}" alt="Thumbnail" class="img-fluid mb-2" style="max-height:200px;">
-                <h5>{{ title }}</h5>
             </div>
         {% endif %}
 
