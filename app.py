@@ -8,7 +8,6 @@ app = Flask(__name__)
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# Path to cookies file
 cookies_file = "cookies.txt"
 
 @app.route("/", methods=["GET", "POST"])
@@ -17,6 +16,7 @@ def index():
     thumbnail = None
     resolutions = None
     link = None
+    message = None
 
     if request.method == "POST":
         if "fetch" in request.form:
@@ -58,18 +58,30 @@ def index():
                             }
                         ],
                     }
+                    message = f"✅ Download complete! Saved as MP3 ({quality} kbps)."
+
                 else:
-                    # ✅ safer format expression with fallback
                     ydl_opts = {
-                        "format": f"bestvideo[height<={quality}]+bestaudio/best/best",
+                        "format": f"bestvideo[height<={quality}]+bestaudio/bestvideo+bestaudio/best",
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
                         "cookiefile": cookies_file,
                         "merge_output_format": "mp4",
                     }
 
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([link])
-                title = "✅ Download complete! Check downloads folder."
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(link, download=True)
+
+                    actual_height = None
+                    if "height" in info:
+                        actual_height = info["height"]
+
+                    if actual_height and str(actual_height) != quality:
+                        message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
+                    else:
+                        message = f"✅ Download complete! Saved in {quality}p."
+
+                title = message
+
             except Exception as e:
                 title = f"Error during download: {str(e)}"
 
