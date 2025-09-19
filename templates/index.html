@@ -20,6 +20,13 @@
             }
         }
     </style>
+    <script>
+        function toggleQualityOptions() {
+            let mode = document.querySelector('input[name="mode"]:checked').value;
+            document.getElementById("video-quality").style.display = (mode === "video") ? "block" : "none";
+            document.getElementById("audio-quality").style.display = (mode === "audio") ? "block" : "none";
+        }
+    </script>
 </head>
 <body class="bg-light">
 <div class="container-fluid mt-3 px-3">
@@ -42,20 +49,28 @@
             {% if resolutions %}
                 <div class="mb-3">
                     <label class="form-label">Download Type</label><br>
-                    <input type="radio" name="mode" value="video" checked> Video
-                    <input type="radio" name="mode" value="audio" class="ms-3"> Audio (MP3)
+                    <input type="radio" name="mode" value="video" checked onclick="toggleQualityOptions()"> Video
+                    <input type="radio" name="mode" value="audio" class="ms-3" onclick="toggleQualityOptions()"> Audio (MP3)
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Available Qualities</label>
+                <!-- Video Qualities -->
+                <div class="mb-3" id="video-quality">
+                    <label class="form-label">Available Video Qualities</label>
                     <select name="quality" class="form-select">
                         {% for r in resolutions %}
                             <option value="{{ r }}">{{ r }}p</option>
                         {% endfor %}
-                        <option value="128">128 kbps (Audio)</option>
-                        <option value="192">192 kbps (Audio)</option>
-                        <option value="256">256 kbps (Audio)</option>
-                        <option value="320" selected>320 kbps (Audio)</option>
+                    </select>
+                </div>
+
+                <!-- Audio Qualities -->
+                <div class="mb-3" id="audio-quality" style="display:none;">
+                    <label class="form-label">Available Audio Qualities</label>
+                    <select name="quality" class="form-select">
+                        <option value="128">128 kbps</option>
+                        <option value="192">192 kbps</option>
+                        <option value="256">256 kbps</option>
+                        <option value="320" selected>320 kbps</option>
                     </select>
                 </div>
 
