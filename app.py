@@ -10,6 +10,12 @@ if not os.path.exists("downloads"):
 
 cookies_file = "cookies.txt"
 
+# ✅ If COOKIES env var exists in Pella, save it into cookies.txt
+if "COOKIES" in os.environ:
+    with open(cookies_file, "w", encoding="utf-8") as f:
+        f.write(os.environ["COOKIES"])
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     title = None
@@ -61,10 +67,8 @@ def index():
                     message = f"✅ Download complete! Saved as MP3 ({quality} kbps)."
 
                 else:
-                    # ✅ Correct fallback chain
-                    format_str = f"(bestvideo[height<={quality}]+bestaudio)/bestvideo+bestaudio/best"
                     ydl_opts = {
-                        "format": format_str,
+                        "format": f"bestvideo[height<={quality}]+bestaudio/best",
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
                         "cookiefile": cookies_file,
                         "merge_output_format": "mp4",
@@ -73,15 +77,9 @@ def index():
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(link, download=True)
 
-                    # Detect actual resolution downloaded
                     actual_height = None
-                    if isinstance(info, dict):
-                        if "height" in info:
-                            actual_height = info["height"]
-                        elif "requested_downloads" in info:
-                            for f in info["requested_downloads"]:
-                                if f.get("height"):
-                                    actual_height = f["height"]
+                    if "height" in info:
+                        actual_height = info["height"]
 
                     if actual_height and str(actual_height) != quality:
                         message = f"⚠️ {quality}p not available. Downloaded best available ({actual_height}p)."
@@ -100,6 +98,7 @@ def index():
         resolutions=resolutions,
         link=link,
     )
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
