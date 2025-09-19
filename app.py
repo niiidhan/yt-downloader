@@ -8,7 +8,7 @@ app = Flask(__name__)
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# Path to cookies file (provided by Render environment file)
+# Path to cookies file
 cookies_file = "cookies.txt"
 
 @app.route("/", methods=["GET", "POST"])
@@ -41,8 +41,9 @@ def index():
 
         elif "download" in request.form:
             link = request.form["url"]
-            mode = request.form["mode"]
-            quality = request.form["quality"]
+            mode = request.form.get("mode")
+            quality = request.form.get("quality")
+
             try:
                 if mode == "audio":
                     ydl_opts = {
@@ -58,10 +59,12 @@ def index():
                         ],
                     }
                 else:
+                    # ✅ safer format expression with fallback
                     ydl_opts = {
-                        "format": f"bestvideo[height<={quality}]+bestaudio/best",
+                        "format": f"bestvideo[height<={quality}]+bestaudio/best/best",
                         "outtmpl": f"downloads/%(title)s.%(ext)s",
                         "cookiefile": cookies_file,
+                        "merge_output_format": "mp4",
                     }
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
