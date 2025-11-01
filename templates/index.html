@@ -22,28 +22,31 @@
   </style>
 </head>
 
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8">
+  <div class="w-full max-w-3xl rounded-2xl card p-6 sm:p-8">
+    <div class="flex flex-col md:flex-row items-start gap-6">
 
-<body class="min-h-screen flex items-center justify-center p-8">
-  <div class="w-full max-w-3xl rounded-2xl card p-8">
-    <div class="flex items-start gap-6">
-      <div class="flex-1">
-        <h1 class="text-2xl font-extrabold text-white mb-2">YouTube Downloader</h1>
-        <p class="text-sm text-gray-400 mb-6">React + Tailwind style — dynamic quality fetch and live progress</p>
+      <!-- LEFT SECTION -->
+      <div class="flex-1 w-full">
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white mb-2 text-center md:text-left">YouTube Downloader</h1>
+        <p class="text-xs sm:text-sm text-gray-400 mb-6 text-center md:text-left">React + Tailwind style — dynamic quality fetch and live progress</p>
 
-        <div class="flex gap-3 items-center mb-4">
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-4">
           <input id="urlInput" type="text" placeholder="https://www.youtube.com/watch?v=..."
-            class="flex-1 p-3 rounded-md bg-[#0b0c0f] border border-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-600" />
-          <button id="fetchBtn" class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700">Fetch</button>
+            class="flex-1 p-3 rounded-md bg-[#0b0c0f] border border-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-600 text-sm sm:text-base" />
+          <button id="fetchBtn"
+            class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-sm sm:text-base">Fetch</button>
         </div>
 
         <div id="fetchError" class="text-sm text-red-400 mb-3 hidden"></div>
 
         <div class="rounded-xl p-4 mb-4"
           style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.02);">
-          <div class="grid grid-cols-3 gap-4 items-center">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             <div>
               <label class="text-xs text-gray-400">Type</label>
-              <select id="typeSelect" class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800">
+              <select id="typeSelect"
+                class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800 text-sm">
                 <option value="video">Video (MP4)</option>
                 <option value="audio">Audio (MP3)</option>
               </select>
@@ -51,14 +54,15 @@
 
             <div>
               <label class="text-xs text-gray-400">Quality</label>
-              <select id="qualitySelect" class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800">
+              <select id="qualitySelect"
+                class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800 text-sm">
                 <option value="">Best available</option>
               </select>
             </div>
 
             <div class="flex items-end">
               <button id="downloadBtn"
-                class="w-full px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700">Download</button>
+                class="w-full px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-sm sm:text-base">Download</button>
             </div>
           </div>
         </div>
@@ -80,18 +84,19 @@
         </div>
       </div>
 
-      <div class="w-80">
+      <!-- RIGHT SECTION -->
+      <div class="w-full md:w-80">
         <div class="mb-4">
           <div id="thumbWrap"
-            class="w-full h-44 bg-gray-900 rounded-md flex items-center justify-center overflow-hidden">
+            class="w-full h-44 sm:h-48 bg-gray-900 rounded-md flex items-center justify-center overflow-hidden">
             <img id="thumbImg" src="" alt="thumbnail" class="w-full h-full object-cover hidden" />
             <div id="thumbPlaceholder" class="text-sm text-gray-600">Thumbnail preview</div>
           </div>
         </div>
 
-        <div class="rounded-md p-4" style="background: rgba(255,255,255,0.02);">
+        <div class="rounded-md p-4 text-center md:text-left" style="background: rgba(255,255,255,0.02);">
           <h3 class="text-sm font-semibold text-gray-200 mb-2">How it works</h3>
-          <ol class="text-xs text-gray-400 list-decimal pl-4 space-y-1">
+          <ol class="text-xs text-gray-400 list-decimal pl-4 space-y-1 inline-block md:block text-left">
             <li>Paste YouTube link</li>
             <li>Click Fetch to view title & thumbnail</li>
             <li>Select quality and type</li>
@@ -102,8 +107,11 @@
       </div>
     </div>
 
-    <div class="mt-6 text-xs text-gray-500">Use responsibly. Respect copyright and YouTube's Terms of Service.</div>
+    <div class="mt-6 text-xs text-gray-500 text-center md:text-left">Use responsibly. Respect copyright and YouTube's
+      Terms of Service.</div>
   </div>
+
+  <!-- SCRIPT (unchanged) -->
   <script>
     let lastInfo = null;
 
@@ -142,16 +150,15 @@
       const qualitySelect = document.getElementById("qualitySelect");
 
       meta.innerHTML = `
-    <div><strong>${info.title}</strong></div>
-    <div class="text-gray-400 text-xs">${info.uploader || ''}</div>
-  `;
+        <div><strong>${info.title}</strong></div>
+        <div class="text-gray-400 text-xs">${info.uploader || ''}</div>
+      `;
       if (info.thumbnail) {
         thumbImg.src = info.thumbnail;
         thumbImg.classList.remove("hidden");
         thumbPlaceholder.classList.add("hidden");
       }
 
-      // Populate qualities
       qualitySelect.innerHTML = "";
       const bestMap = info.best_formats_by_height || {};
       const heights = info.video_heights || [];
@@ -187,7 +194,5 @@
       a.click();
     });
   </script>
-
 </body>
-
 </html>
