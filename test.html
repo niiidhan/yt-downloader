@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yt-tweak</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='play.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(ellipse at top left, rgba(30, 34, 40, 0.9), #05060a 60%);
+      color: #ddd;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(20, 22, 25, 0.9), rgba(12, 13, 15, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8">
+  <div class="w-full max-w-3xl rounded-2xl card p-6 sm:p-8">
+    <div class="flex flex-col md:flex-row items-start gap-6">
+
+      <!-- LEFT SECTION -->
+      <div class="flex-1 w-full">
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white mb-2 text-center md:text-left">YouTube Downloader</h1>
+        <p class="text-xs sm:text-sm text-gray-400 mb-6 text-center md:text-left">React + Tailwind style — dynamic quality fetch and live progress</p>
+
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-4">
+          <input id="urlInput" type="text" placeholder="https://www.youtube.com/watch?v=..."
+            class="flex-1 p-3 rounded-md bg-[#0b0c0f] border border-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-600 text-sm sm:text-base" />
+          <button id="fetchBtn"
+            class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-sm sm:text-base">Fetch</button>
+        </div>
+
+        <div id="fetchError" class="text-sm text-red-400 mb-3 hidden"></div>
+
+        <div class="rounded-xl p-4 mb-4"
+          style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.02);">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+            <div>
+              <label class="text-xs text-gray-400">Type</label>
+              <select id="typeSelect"
+                class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800 text-sm">
+                <option value="video">Video (MP4)</option>
+                <option value="audio">Audio (MP3)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-gray-400">Quality</label>
+              <select id="qualitySelect"
+                class="mt-1 w-full p-2 rounded bg-[#0b0c0f] border border-gray-800 text-sm">
+                <option value="">Best available</option>
+              </select>
+            </div>
+
+            <div class="flex items-end">
+              <button id="downloadBtn"
+                class="w-full px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-sm sm:text-base">Download</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="videoDetails" class="text-sm text-gray-300">
+          <div id="videoMeta" class="mb-2">No video info yet. Paste a URL and click Fetch.</div>
+
+          <div id="progressWrap" class="mt-4 hidden">
+            <div class="text-xs text-gray-400 mb-2">Download progress</div>
+            <div class="w-full bg-gray-800 rounded-full h-4 overflow-hidden">
+              <div id="progressBar" class="h-4 rounded-full"
+                style="width:0%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <div id="progressPercent">0%</div>
+              <div id="progressEta">ETA: --</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SECTION -->
+      <div class="w-full md:w-80">
+        <div class="mb-4">
+          <div id="thumbWrap"
+            class="w-full h-44 sm:h-48 bg-gray-900 rounded-md flex items-center justify-center overflow-hidden">
+            <img id="thumbImg" src="" alt="thumbnail" class="w-full h-full object-cover hidden" />
+            <div id="thumbPlaceholder" class="text-sm text-gray-600">Thumbnail preview</div>
+          </div>
+        </div>
+
+        <div class="rounded-md p-4 text-center md:text-left" style="background: rgba(255,255,255,0.02);">
+          <h3 class="text-sm font-semibold text-gray-200 mb-2">How it works</h3>
+          <ol class="text-xs text-gray-400 list-decimal pl-4 space-y-1 inline-block md:block text-left">
+            <li>Paste YouTube link</li>
+            <li>Click Fetch to view title & thumbnail</li>
+            <li>Select quality and type</li>
+            <li>Click Download — watch progress</li>
+          </ol>
+          <p class="text-xs text-gray-500 mt-3">Note: Private local use only. Don't expose publicly.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 text-xs text-gray-500 text-center md:text-left">Use responsibly. Respect copyright and YouTube's
+      Terms of Service.</div>
+  </div>
+
+  <!-- SCRIPT (unchanged) -->
+  <script>
+    let lastInfo = null;
+
+    document.getElementById("fetchBtn").addEventListener("click", async () => {
+      const url = document.getElementById("urlInput").value.trim();
+      const errBox = document.getElementById("fetchError");
+      errBox.classList.add("hidden");
+
+      if (!url) {
+        errBox.textContent = "Please enter a YouTube URL.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      const res = await fetch("/api/info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        errBox.textContent = data.error || "Failed to fetch video info.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      lastInfo = data;
+      populateVideoDetails(data);
+    });
+
+    function populateVideoDetails(info) {
+      const meta = document.getElementById("videoMeta");
+      const thumbImg = document.getElementById("thumbImg");
+      const thumbPlaceholder = document.getElementById("thumbPlaceholder");
+      const qualitySelect = document.getElementById("qualitySelect");
+
+      meta.innerHTML = `
+        <div><strong>${info.title}</strong></div>
+        <div class="text-gray-400 text-xs">${info.uploader || ''}</div>
+      `;
+      if (info.thumbnail) {
+        thumbImg.src = info.thumbnail;
+        thumbImg.classList.remove("hidden");
+        thumbPlaceholder.classList.add("hidden");
+      }
+
+      qualitySelect.innerHTML = "";
+      const bestMap = info.best_formats_by_height || {};
+      const heights = info.video_heights || [];
+
+      heights.forEach(h => {
+        const fmt = bestMap[h];
+        if (!fmt) return;
+        const opt = document.createElement("option");
+        opt.value = fmt.format_id;
+        opt.textContent = `${h}p • ${fmt.ext || ""}`;
+        qualitySelect.appendChild(opt);
+      });
+    }
+
+    document.getElementById("downloadBtn").addEventListener("click", async () => {
+      if (!lastInfo) return alert("Fetch video info first.");
+      const url = lastInfo.webpage_url;
+      const kind = document.getElementById("typeSelect").value;
+      const fmt = document.getElementById("qualitySelect").value;
+
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, kind, format_id: fmt })
+      });
+
+      if (!res.ok) return alert("Download failed.");
+
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = lastInfo.title + (kind === "audio" ? ".mp3" : ".mp4");
+      a.click();
+    });
+  </script>
+</body>
+</html>
