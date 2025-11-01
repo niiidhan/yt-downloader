@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # ------------------- Folder setup ------------------- #
 BASE_DIR = Path(__file__).resolve().parent
-DOWNLOAD_DIR = BASE_DIR / "downloads"
+DOWNLOAD_DIR = Path("/tmp/downloads")
 VIDEO_DIR = DOWNLOAD_DIR / "Videos"
 AUDIO_DIR = DOWNLOAD_DIR / "Audio"
 
