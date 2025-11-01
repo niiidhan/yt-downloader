@@ -142,20 +142,15 @@ for folder in [VIDEO_DIR, AUDIO_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
 # ------------------- Helper ------------------- #
-COOKIE_ENV = os.getenv("YTDL_COOKIES")
-COOKIE_PATH = BASE_DIR / "cookies.txt"
-
-# If a cookie string is provided in environment (Render Secret),
-# save it as cookies.txt for yt_dlp to use.
-if COOKIE_ENV:
-    with open(COOKIE_PATH, "w", encoding="utf-8") as f:
-        f.write(COOKIE_ENV)
-
 def get_cookie_opt():
-    """Return yt_dlp options with cookie file if available."""
-    if COOKIE_PATH.exists():
-        return {"cookiefile": str(COOKIE_PATH)}
+    """Return cookiefile option if available"""
+    if COOKIE_FILE.exists():
+        return {"cookiefile": str(COOKIE_FILE)}
     return {}
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 # ------------------- Fetch video info ------------------- #
 @app.route("/api/info", methods=["POST"])
